@@ -1,0 +1,41 @@
+name: iOS unsigned IPA for local signing
+
+on:
+  workflow_dispatch:
+    inputs:
+      flutter_ref:
+        description: Official Flutter branch or release tag
+        required: true
+        default: stable
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install official Flutter SDK
+        env:
+          FLUTTER_REF: ${{ inputs.flutter_ref }}
+        run: |
+          git clone --depth 1 --branch "$FLUTTER_REF" https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Check Xcode and Flutter
+        run: |
+          xcodebuild -version
+          flutter --version
+      - name: Build and package unsigned IPA
+        run: bash scripts/build-ios.sh --unsigned-ipa
+      - name: Upload IPA for local Apple signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: Twinlock-iOS-unsigned-requires-signing
+          path: dist/*-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
