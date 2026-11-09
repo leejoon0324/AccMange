@@ -13,6 +13,7 @@ fi
 flutter pub get
 flutter analyze
 flutter test
+flutter precache --ios
 (cd ios && pod install)
 if [[ "$mode" == "--unsigned" || "$mode" == "--unsigned-ipa" ]]; then
   flutter build ios --release --no-codesign
