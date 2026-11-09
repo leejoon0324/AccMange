@@ -19,7 +19,7 @@ try {
         $relative = $file.FullName.Substring($projectRoot.Length + 1).Replace('\','/')
         if ($relative -match '(^|/)(\.gradle|build|Pods|\.symlinks|ephemeral|\.swiftpm)/' -or
             $file.Name -in @('local.properties','key.properties','Generated.xcconfig','flutter_export_environment.sh') -or
-            $file.Extension -in @('.jks','.p12','.pfx','.p8','.mobileprovision','.iml','.log') -or
+            $file.Extension -in @('.jks','.keystore','.p12','.pfx','.p8','.pem','.key','.mobileprovision','.iml','.log') -or
             $file.Name -like 'GeneratedPluginRegistrant.*') { continue }
         $entry = $archive.CreateEntry('Twinlock/'+$relative, [System.IO.Compression.CompressionLevel]::Optimal)
         $destination = $entry.Open()
