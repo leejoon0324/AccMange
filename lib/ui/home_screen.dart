@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _scan() async {
     final config = await Navigator.push<OtpConfig>(
         context, MaterialPageRoute(builder: (_) => const ScannerScreen()));
-    if (config != null && mounted && vault.unlocked) {
+    if (config != null && mounted && vault.ready) {
       await _edit(scanned: config, kind: RecordKind.otp);
     }
   }
@@ -92,15 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = await vault.exportBackup(password);
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox;
-      await vault.external(
-          () => shareBackup(data, box.localToGlobal(Offset.zero) & box.size));
+      await shareBackup(data, box.localToGlobal(Offset.zero) & box.size);
       if (mounted) toast(context, '已打开分享菜单，请将备份保存到安全位置');
     });
   }
 
   Future<void> _import() async {
     await _run(() async {
-      final data = await vault.external(pickBackup);
+      final data = await pickBackup();
       if (data == null || !mounted) return;
       vault.codec.envelope(data);
       final password = await askBackupPassword(context, importing: true);
@@ -150,6 +149,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]))));
   }
 
+  Future<void> _importLegacy() async {
+    final password =
+        await askBackupPassword(context, importing: true, legacy: true);
+    if (password == null || !mounted) return;
+    await _run(() async {
+      try {
+        final count = await vault.importLegacy(password);
+        if (mounted) toast(context, '已导入 $count 条旧版记录，以后打开即可使用');
+      } catch (_) {
+        if (mounted) toast(context, '导入失败：旧版主密码错误或数据无法读取。');
+      }
+    });
+  }
+
   void _settings() {
     showModalBottomSheet<void>(
         context: context,
@@ -169,25 +182,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700)))),
-                      SwitchListTile(
-                          title: const Text('指纹 / Face ID 解锁'),
-                          subtitle: Text(vault.biometricAvailable
-                              ? '使用设备生物识别快速解锁'
-                              : '此设备尚未配置可用的生物识别'),
-                          secondary: const Icon(Icons.fingerprint),
-                          value: vault.biometricEnabled,
-                          onChanged: vault.biometricAvailable
-                              ? (enabled) async {
-                                  try {
-                                    await vault.external(
-                                        () => vault.setBiometric(enabled));
-                                  } catch (e) {
-                                    if (sheet.mounted) {
-                                      toast(sheet, friendlyError(e));
-                                    }
-                                  }
-                                }
-                              : null),
+                      if (vault.legacyAvailable)
+                        ListTile(
+                          leading: const Icon(Icons.history),
+                          title: const Text('导入旧版数据'),
+                          subtitle: const Text('旧版数据已保留，可用原主密码导入一次'),
+                          onTap: () {
+                            Navigator.pop(sheet);
+                            _importLegacy();
+                          },
+                        ),
                       ListTile(
                           leading: const Icon(Icons.file_upload_outlined),
                           title: const Text('导出加密备份'),
@@ -206,10 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           }),
                       const Divider(indent: 16, endIndent: 16),
                       const ListTile(
-                          leading: Icon(Icons.timer_outlined),
-                          title: Text('自动锁定'),
-                          subtitle: Text(
-                              '离开应用立即锁定；无操作 5 分钟锁定。\n系统文件选择与分享期间最多宽限 2 分钟。')),
+                          leading: Icon(Icons.phone_android),
+                          title: Text('打开即用'),
+                          subtitle: Text('启动与返回应用均直接进入主界面。数据使用设备密钥在本机加密。')),
                       const ListTile(
                           leading: Icon(Icons.schedule),
                           title: Text('验证码时间'),
@@ -217,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Padding(
                           padding: EdgeInsets.all(16),
                           child: Text(
-                              '双钥 1.0.0\nAES-256-GCM 本机加密 · 不上传账号数据\n主密码无法找回，请定期导出备份。',
+                              '双钥 1.1.0\nAES-256-GCM 本机加密 · 不上传账号数据\n请定期导出加密备份。',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: muted, fontSize: 12, height: 1.7))),
@@ -289,12 +292,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 fontSize: 24,
                                                 fontWeight: FontWeight.w800))),
                                     IconButton(
-                                        tooltip: '立即锁定',
-                                        onPressed: vault.lock,
-                                        icon: const Icon(
-                                            Icons.lock_outline_rounded,
-                                            color: muted)),
-                                    IconButton(
                                         tooltip: '安全与备份',
                                         onPressed: _settings,
                                         icon: const Icon(Icons.tune_rounded,
@@ -316,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             color: mint,
                                             shape: BoxShape.circle)),
                                     const SizedBox(width: 8),
-                                    Text('保险箱已解锁  ·  ${records.length} 个账号',
+                                    Text('本机已加密  ·  ${records.length} 个账号',
                                         style: const TextStyle(
                                             fontSize: 12, color: muted)),
                                     const Spacer(),
@@ -332,6 +329,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const Text('界面预览 · 刷新后清除数据，请勿保存真实账号',
                                         style: TextStyle(
                                             color: mint, fontSize: 12))
+                                  ],
+                                  if (vault.legacyAvailable) ...[
+                                    const SizedBox(height: 12),
+                                    TextButton.icon(
+                                      onPressed: _importLegacy,
+                                      icon: const Icon(Icons.history, size: 18),
+                                      label: const Text('发现旧版数据，点此导入'),
+                                    ),
                                   ],
                                   const SizedBox(height: 28),
                                   Container(

@@ -7,25 +7,21 @@ import 'package:twinlock/core/vault_service.dart';
 import 'package:twinlock/ui/editor_screen.dart';
 import 'package:twinlock/ui/home_screen.dart';
 import 'package:twinlock/ui/theme.dart';
-import 'package:twinlock/ui/unlock_screen.dart';
+import 'package:twinlock/main.dart';
+
+import 'vault_lifecycle_test.dart' show MemoryStore, MemoryKeys;
 
 class TestVault extends VaultService {
   final List<VaultRecord> items;
   TestVault([this.items = const []]);
   VaultRecord? saved;
-  String? createdPassword;
   @override
   List<VaultRecord> get records => items;
   @override
-  bool get unlocked => true;
+  bool get ready => true;
   @override
   Future<void> save(VaultRecord record) async {
     saved = record;
-  }
-
-  @override
-  Future<void> create(String password) async {
-    createdPassword = password;
   }
 }
 
@@ -37,17 +33,35 @@ Widget host(Widget child) => MaterialApp(
     home: child);
 
 void main() {
-  testWidgets('setup rejects mismatched passwords', (tester) async {
-    final vault = TestVault();
-    await tester.pumpWidget(host(UnlockScreen(vault: vault)));
-    await tester.enterText(find.byType(TextFormField).first, 'password123');
-    await tester.enterText(find.byType(TextFormField).last, 'different123');
-    await tester.ensureVisible(find.text('创建我的保险箱'));
-    await tester.tap(find.text('创建我的保险箱'));
+  testWidgets(
+      'launch, background return and idle time keep the home screen without a password prompt',
+      (tester) async {
+    final vault = VaultService(store: MemoryStore(), keyStore: MemoryKeys());
+    await tester.runAsync(vault.boot);
+    await tester.pumpWidget(TwinlockApp(vault: vault));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.byTooltip('立即锁定'), findsNothing);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(minutes: 6));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
-    expect(find.text('两次输入的密码不一致'), findsOneWidget);
-    expect(vault.createdPassword, isNull);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(vault.ready, isTrue);
+    expect(find.byType(TextFormField), findsNothing);
+    await tester.tap(find.byTooltip('安全与备份'));
+    await tester.pumpAndSettle();
+    expect(find.text('打开即用'), findsOneWidget);
+    expect(find.text('指纹 / Face ID 解锁'), findsNothing);
+    expect(find.text('自动锁定'), findsNothing);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    vault.dispose();
   });
   testWidgets(
       '360px dashboard searches and switches password vault without exposing password',

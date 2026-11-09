@@ -109,7 +109,7 @@ class VaultCodec {
 
   static void validatePassword(String password) {
     if (password.length < 8 || password.length > 256) {
-      throw const FormatException('主密码须为 8–256 个字符，建议使用较长的密码短语。');
+      throw const FormatException('备份密码须为 8–256 个字符，建议使用较长的密码短语。');
     }
   }
 }

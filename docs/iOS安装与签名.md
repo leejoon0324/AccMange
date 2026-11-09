@@ -1,6 +1,6 @@
 # iOS 构建、签名与安装
 
-目前交付的源码工程没有可安装 IPA。生成可以安装的 iPhone 应用需要两步：macOS/Xcode 编译，以及有效的 Apple 签名与设备授权。把 ZIP 改成 IPA 扩展名不能完成这两步。
+当前 1.1.0 交付未签名 IPA，本次已停止签名。生成可以安装的 iPhone 应用需要两步：macOS/Xcode 编译，以及有效的 Apple 签名与设备授权。把 ZIP 改成 IPA 扩展名不能完成这两步。
 
 ## 只有 Windows 与 iPhone
 
@@ -8,7 +8,7 @@
 
 1. 使用自己的 GitHub 仓库存放完整项目，包含 `.github/workflows/ios-unsigned.yml`。如果希望由助手操作，需要提供具体仓库并明确允许上传源码。仓库是否公开和 Actions 费用由账号设置决定，不会自动替你创建公开仓库或购买服务。
 2. 在仓库 Actions 中手动运行 **iOS unsigned IPA for local signing**，默认使用官方 Flutter stable 分支。
-3. 构建完成后，下载 `Twinlock-iOS-unsigned-requires-signing` artifact，解压得到 `Twinlock-1.0.0-unsigned.ipa`。这个文件仍然未签名，不能直接安装。
+3. 构建完成后，下载 `Twinlock-iOS-unsigned-requires-signing` artifact，解压得到 `Twinlock-1.1.0-unsigned.ipa`。这个文件仍然未签名，不能直接安装。
 4. 从 [Sideloadly 官方网站](https://sideloadly.io/) 安装 Windows 版本，并按官方说明安装所需 Apple 设备组件。
 5. 使用 USB 连接 iPhone，解锁并信任电脑。将未签名 IPA 放入 Sideloadly，使用自己的 Apple ID 完成签名与安装。Apple ID 密码与验证码应由你在应用中输入，不要发到聊天或提交到源码仓库。
 6. 按系统提示信任开发者证书；iOS 16 及以上通常需要开启开发者模式。

@@ -57,8 +57,10 @@ if (!$SkipChecks) {
 & $flutterCommand build apk --release
 if ($LASTEXITCODE -ne 0) { throw 'APK build failed' }
 $outputDir = Join-Path $projectRoot 'dist'
+$appVersion = [regex]::Match((Get-Content -LiteralPath 'pubspec.yaml' -Raw), '(?m)^version:\s*([^+\s]+)').Groups[1].Value
+if (!$appVersion) { throw 'Missing application version' }
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'build/app/outputs/flutter-apk/app-release.apk') `
-    -Destination (Join-Path $outputDir 'Twinlock-1.0.0-android.apk') -Force
-Write-Output 'APK saved to dist/Twinlock-1.0.0-android.apk'
+    -Destination (Join-Path $outputDir "Twinlock-$appVersion-android.apk") -Force
+Write-Output "APK saved to dist/Twinlock-$appVersion-android.apk"
 Write-Output 'Keep the signing key and its password in secrets/ for future app updates.'

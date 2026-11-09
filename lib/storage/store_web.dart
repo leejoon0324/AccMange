@@ -2,6 +2,7 @@
 class VaultStore {
   String? _data;
   Future<String?> read() async => _data;
+  Future<String?> readLegacy() async => null;
   Future<void> write(String data) async {
     _data = data;
   }

@@ -2,7 +2,9 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $outputDir = Join-Path $projectRoot 'dist'
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-$zipPath = Join-Path $outputDir 'Twinlock-1.0.0-ios-project.zip'
+$appVersion = [regex]::Match((Get-Content -LiteralPath (Join-Path $projectRoot 'pubspec.yaml') -Raw), '(?m)^version:\s*([^+\s]+)').Groups[1].Value
+if (!$appVersion) { throw 'Missing application version' }
+$zipPath = Join-Path $outputDir "Twinlock-$appVersion-ios-project.zip"
 Add-Type -AssemblyName System.IO.Compression
 $stream = [System.IO.File]::Open($zipPath, [System.IO.FileMode]::Create)
 $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create)

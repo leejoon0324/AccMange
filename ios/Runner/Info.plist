@@ -28,8 +28,6 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>使用相机扫描双重验证二维码，添加认证账号。</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>使用 Face ID 安全解锁本机密码保险箱。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

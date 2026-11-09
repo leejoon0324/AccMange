@@ -5,15 +5,18 @@ import 'theme.dart';
 Future<String?> askBackupPassword(
   BuildContext context, {
   required bool importing,
+  bool legacy = false,
 }) =>
     showDialog<String>(
       context: context,
-      builder: (context) => _BackupPasswordDialog(importing: importing),
+      builder: (context) =>
+          _BackupPasswordDialog(importing: importing, legacy: legacy),
     );
 
 class _BackupPasswordDialog extends StatefulWidget {
   final bool importing;
-  const _BackupPasswordDialog({required this.importing});
+  final bool legacy;
+  const _BackupPasswordDialog({required this.importing, required this.legacy});
   @override
   State<_BackupPasswordDialog> createState() => _BackupPasswordDialogState();
 }
@@ -31,7 +34,11 @@ class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.importing ? '解密备份' : '加密备份'),
+        title: Text(widget.legacy
+            ? '导入旧版数据'
+            : widget.importing
+                ? '解密备份'
+                : '加密备份'),
         content: SingleChildScrollView(
           child: Form(
             key: _form,
@@ -40,9 +47,11 @@ class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.importing
-                      ? '输入导出此文件时设置的备份密码。记录将合并，同一记录保留较新版本。'
-                      : '为备份设置独立密码。文件包含所有认证密钥和密码，请妥善保存文件与备份密码。',
+                  widget.legacy
+                      ? '输入旧版主密码，将保留的旧版记录合并到当前应用。以后打开无需输入密码。'
+                      : widget.importing
+                          ? '输入导出此文件时设置的备份密码。记录将合并，同一记录保留较新版本。'
+                          : '为备份设置独立密码。文件包含所有认证密钥和密码，请妥善保存文件与备份密码。',
                   style: const TextStyle(color: muted, height: 1.6),
                 ),
                 const SizedBox(height: 20),
@@ -51,7 +60,8 @@ class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
                   obscureText: true,
                   autocorrect: false,
                   enableSuggestions: false,
-                  decoration: const InputDecoration(labelText: '备份密码'),
+                  decoration: InputDecoration(
+                      labelText: widget.legacy ? '旧版主密码' : '备份密码'),
                   validator: (v) => (v?.isEmpty ?? true)
                       ? '请输入备份密码'
                       : !widget.importing && (v!.length < 8 || v.length > 256)
